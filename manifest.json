@@ -19,7 +19,13 @@
     "https://worldtimeapi.org/*",
     "https://timeapi.io/*",
     "https://nominatim.openstreetmap.org/*",
-    "https://ipapi.co/*"
+    "https://get.geojs.io/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["window.html", "src/css/window.css", "window.js"],
+      "matches": ["<all_urls>"]
+    }
   ],
   "background": {
     "service_worker": "background.js"
