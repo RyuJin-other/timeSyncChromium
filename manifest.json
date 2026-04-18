@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Time Sync Pro",
+  "version": "1.0.0",
+  "description": "Secure NTP Clock & Evidence tool for precise time verification.",
+  "author": "A.res.t",
+  "icons": {
+    "16": "icons/icons_16.png",
+    "32": "icons/icons_32.png",
+    "64": "icons/icons_64.png",
+    "128": "icons/icons_128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Open Time Sync"
+  },
+  "permissions": ["storage", "windows", "geolocation"],
+  "host_permissions": [
+    "https://worldtimeapi.org/*",
+    "https://timeapi.io/*",
+    "https://nominatim.openstreetmap.org/*",
+    "https://ipapi.co/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
