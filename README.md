@@ -33,7 +33,7 @@ Untuk pengguna Google Chrome, Microsoft Edge, atau Brave, kami sangat menyaranka
 Ini adalah cara termudah dan paling aman.
 
 1. Buka halaman resmi Time Sync Pro di Chrome Web Store:  
-   👉 **[Install Time Sync Pro dari Chrome Web Store](Masukkan_Link_Chrome_Web_Store_Kamu_Di_Sini)**
+   👉 **[Install Time Sync Pro dari Chrome Web Store](https://chromewebstore.google.com/detail/fambmhachpjgnjjppcjgooodpjekejip?utm_source=item-share-cb)**
 2. Klik tombol biru **"Add to Chrome"** (atau Tambahkan ke Chrome).
 3. Klik **"Add extension"** pada _pop-up_ persetujuan yang muncul. Selesai! 🎉
 
