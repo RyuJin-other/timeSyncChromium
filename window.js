@@ -127,10 +127,14 @@ function updateLocationDisplay() {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (tz) {
+        alert(
+          "Akses lokasi diblokir oleh browser. Silakan izinkan akses lokasi di pengaturan privasi browser Anda.",
+        );
         const areaName = tz.replace(/_/g, " ");
         elements.locationDisplay.textContent = `LOC: ${areaName}`;
       } else {
         // Jika timezone juga gagal terbaca, baru panggil cara terakhir (IP API)
+
         useIPLocation();
       }
     } catch (e) {
@@ -351,8 +355,13 @@ async function syncNow(silent = false) {
       state.timeOffset = (serverDateTime - localDateTime) / 1000;
       state.lastSync = localDateTime;
       const diff = Math.abs(state.timeOffset);
-      if (diff < 0.499) setStatus("● SECURE NTP SYNC", "#10B981");
-      else setStatus(`● Time Late: ${diff.toFixed(3)}s`, "#F59E0B");
+      if (diff <= 0.499) {
+        setStatus("● Sync Successful", "#4ade80");
+      } else if (diff <= 1.0) {
+        setStatus("● Acceptable", "#60a5fa");
+      } else {
+        setStatus(`● Time Late: ${diff.toFixed(3)}s`, "#fb923c");
+      }
     } else throw new Error("Servers failed");
   } catch (error) {
     setStatus("● Sync failed", "#EF4444");

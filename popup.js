@@ -88,11 +88,13 @@ function initTheme() {
 function updateLocationDisplay() {
   if (!elements.locationDisplay) return;
 
+  // --- PINTU GERBANG PRIVASI ---
   if (!state.locationEnabled) {
     elements.locationDisplay.textContent = "LOC: Nonaktif";
     return;
   }
 
+  // PRIORITAS 1: Cek Input Manual
   if (state.customLocation && state.customLocation.trim() !== "") {
     elements.locationDisplay.textContent = `LOC: ${state.customLocation}`;
     return;
@@ -100,15 +102,7 @@ function updateLocationDisplay() {
 
   elements.locationDisplay.textContent = "LOC: Mendeteksi...";
 
-  const useFallbackTimezone = () => {
-    let areaName = "Indonesia";
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz) areaName = tz.replace(/_/g, " ");
-    } catch (e) {}
-    elements.locationDisplay.textContent = `LOC: ${areaName}`;
-  };
-
+  // PRIORITAS 4 (CARA TERAKHIR): Jalur Udara / IP API
   const useIPLocation = async () => {
     try {
       const response = await fetch("https://get.geojs.io/v1/ip/geo.json");
@@ -117,13 +111,34 @@ function updateLocationDisplay() {
       if (data.city && data.country) {
         elements.locationDisplay.textContent = `LOC: ${data.city}, ${data.country}`;
       } else {
-        useFallbackTimezone();
+        elements.locationDisplay.textContent = "LOC: Tidak Diketahui";
       }
     } catch (err) {
-      useFallbackTimezone();
+      elements.locationDisplay.textContent = "LOC: Tidak Diketahui";
     }
   };
 
+  // PRIORITAS 3: Fallback ke Timezone OS (Cepat, Tanpa Internet, Anti-CORS)
+  const useFallbackTimezone = () => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) {
+        alert(
+          "Akses lokasi diblokir oleh browser. Silakan izinkan akses lokasi di pengaturan privasi browser Anda.",
+        );
+
+        const areaName = tz.replace(/_/g, " ");
+        elements.locationDisplay.textContent = `LOC: ${areaName}`;
+      } else {
+        // Jika timezone juga gagal terbaca, baru panggil cara terakhir (IP API)
+        useIPLocation();
+      }
+    } catch (e) {
+      useIPLocation(); // Lempar ke cara terakhir
+    }
+  };
+
+  // PRIORITAS 2: Percobaan Utama (Navigator GPS / Jalur Darat)
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -139,6 +154,7 @@ function updateLocationDisplay() {
           const exactLocation =
             data.address.city ||
             data.address.town ||
+            data.address.village ||
             data.address.county ||
             "GPS Lokasi";
           const countryCode = data.address.country_code
@@ -146,16 +162,21 @@ function updateLocationDisplay() {
             : "ID";
           elements.locationDisplay.textContent = `LOC: ${exactLocation}, ${countryCode}`;
         } catch (err) {
-          useIPLocation();
+          // Gagal ubah koordinat jadi teks? Langsung pakai Timezone OS
+
+          useFallbackTimezone();
         }
       },
       (error) => {
-        useIPLocation();
+        // User menolak GPS atau sistem menolak? Langsung pakai Timezone OS
+        useFallbackTimezone();
       },
       { timeout: 5000, enableHighAccuracy: false },
     );
   } else {
-    useIPLocation();
+    // Browser sangat jadul? Pakai Timezone OS
+
+    useFallbackTimezone();
   }
 }
 
@@ -365,8 +386,13 @@ async function syncNow(silent = false) {
       state.timeOffset = (serverDateTime - localDateTime) / 1000;
       state.lastSync = localDateTime;
       const diff = Math.abs(state.timeOffset);
-      if (diff < 0.499) setStatus("● SECURE NTP SYNC", "#10B981");
-      else setStatus(`● Time Late: ${diff.toFixed(3)}s`, "#F59E0B");
+      if (diff <= 0.499) {
+        setStatus("● Sync Successful", "#4ade80");
+      } else if (diff <= 1.0) {
+        setStatus("● Acceptable", "#60a5fa");
+      } else {
+        setStatus(`● Time Late: ${diff.toFixed(3)}s`, "#fb923c");
+      }
     } else throw new Error("Servers failed");
   } catch (error) {
     setStatus("● Sync failed", "#EF4444");
