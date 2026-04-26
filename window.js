@@ -19,7 +19,7 @@ const FIXED_WIDTH = 380;
 const FIXED_HEIGHT = 300;
 
 const state = {
-  ntpServer: "worldtimeapi.org",
+  ntpServer: "time.now",
   syncInterval: 60,
   serverTime: null,
   lastSync: null,
@@ -190,7 +190,7 @@ function loadSettings() {
         state.ntpServer =
           result.ntpServer && isValidDomain(result.ntpServer)
             ? result.ntpServer
-            : "worldtimeapi.org";
+            : "time.now";
         state.syncInterval = sanitizeNumber(
           result.syncInterval,
           MIN_INTERVAL,
@@ -328,24 +328,48 @@ async function syncNow(silent = false) {
 
   try {
     let serverDateTime = null;
-    const urls = [
-      "https://worldtimeapi.org/api/timezone/Etc/UTC",
-      "https://timeapi.io/api/time/current/zone?timeZone=UTC",
+    const sources = [
+      // PRIMARY: time.now — schema identik WorldTimeAPI, field unixtime tersedia
+      {
+        url: "https://time.now/developer/api/timezone/Etc/UCT",
+        parse: (data) => (data.unixtime ? data.unixtime * 1000 : null),
+      },
+      // FALLBACK 1: timeapi.io /timezone/zone
+      {
+        url: "https://timeapi.io/api/v1/timezone/zone?timeZone=Etc%2FUCT",
+        parse: (data) => {
+          const raw = data.currentLocalTime || data.dateTime;
+          return raw
+            ? new Date(raw.endsWith("Z") ? raw : raw + "Z").getTime()
+            : null;
+        },
+      },
+      // FALLBACK 2: timeapi.io /time/current/zone
+      {
+        url: "https://timeapi.io/api/time/current/zone?timeZone=Etc%2FUCT",
+        parse: (data) => {
+          const raw = data.currentLocalTime || data.dateTime;
+          return raw
+            ? new Date(raw.endsWith("Z") ? raw : raw + "Z").getTime()
+            : null;
+        },
+      },
     ];
 
-    for (const url of urls) {
+    for (const source of sources) {
       if (serverDateTime) break;
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
-        const response = await fetch(url, { signal: controller.signal });
+        const response = await fetch(source.url, { signal: controller.signal });
         clearTimeout(timeoutId);
         if (response.ok) {
           const data = await response.json();
-          const ts = data.unixtime
-            ? data.unixtime * 1000
-            : new Date(data.dateTime + "Z").getTime();
-          if (isValidTimestamp(ts)) serverDateTime = new Date(ts);
+          const ts = source.parse(data);
+          if (ts && isValidTimestamp(ts)) {
+            serverDateTime = new Date(ts);
+            serverDateTime._fromTimeNow = source.url.includes("time.now");
+          }
         }
       } catch (e) {}
     }
